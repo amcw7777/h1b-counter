@@ -7,12 +7,14 @@ A program to analyze H1B row data from past years, specifically calculate two me
   1. [Input]( README.md#input )
   2. [Output]( README.md#output )
   3. [Challenge]( README.md#challenge )
+
 2. [Approach]( README.md#approach )
-  1. [Data information]( README.md#data information )
+  1. [Data information]( README.md#data-information )
   2. [Data prerpocessing]( README.md#data-preprocessing )
   3. [Data analysis]( README.md#data-analysis )
   4. [Complexity and trade-offs]( README.md#complexity-and-trade-offs )
-3. [Run instructions]( README.md#run-instruction )
+
+3. [Run instructions]( README.md#run-instructions)
 
 
 # Problem
@@ -61,14 +63,14 @@ Occupation name: 'SOC' in name and 'NAME' in name
 SOC code: 'SOC' in name and 'CODE' in name
 ```
 Since in 2014 data, there is another field name `LCA_CASE_WORKLOC2_STATE`, I only take the first time. 
-The semicolon delimiter challenge can be solve using a function. Or using regular expression.
+The semicolon delimiter challenge can be solve using [a function](https://github.com/amcw7777/h1b-counter/blob/master/src/h1b_tools.py#L60-L81). Or using [regular expression](https://github.com/amcw7777/h1b-counter/blob/master/src/preprocess.py#L44).
 
 ## Data preprocessing 
 ### STATUS
 Valid values include “Certified”, “Certified-Withdrawn”, “Denied”, and “Withdrawn". In the given data, most information are valid. In the 2014 data, one case with status as 'REJECTED' and another one as 'INVALIDATED'. These are the only two special cases for the three years data. In this problem, only cases with "Certified" status are counted. So the special cases will not affect the result.
 
 ### STATE
-Two letters short for one of the states. In some cases, the name of the states are incorrect and the name cannot be found in a state dictionary. For these cases, I am using Zip code to correct the states. And check all the special cases manually. ** If the state name is accidentally input as another state, my program does not work. **
+Two letters short for one of the states. In some cases, the name of the states are incorrect and the name cannot be found in a state dictionary. For these cases, [a function](https://github.com/amcw7777/h1b-counter/blob/master/src/preprocess.py#L112-L127) uses Zip code to correct the states. And check all the special cases manually. ** If the state name is accidentally input as another state, my program does not work. **
 
 ### Inferring OCCUPATION
 The occupation name in raw data is not very clean. 
@@ -94,7 +96,7 @@ With the help of these two dictionaries, the occupation name can be found with f
 3. Else, means it might be a new name with new SOC code. Or both the name and SOC code are wrong. In this case, just return the name. 
 
 To get these two dictionaries, there are two methods in my program:
-1. Using file from [website](https://www.onetcenter.org/taxonomy/2010/list.html)
+1. Using file from [website](https://www.onetcenter.org/taxonomy/2010/list.html).
   * Pro: The SOC code and occupation name can be always valid. 
   * Con: Need to update the file for different year.
 2. Using the input data, for each SOC code, choose the occupation name with most counting as the value. For example, in the table below, the correct name corresponding to '13-1161.00' should be 'MARKET RESEARCH ANALYSTS AND MARKETING SPECIALISTS'. Others are missing information or typos.
@@ -108,7 +110,7 @@ To get these two dictionaries, there are two methods in my program:
 |            | MARKET RESEARCH ANALYST AND MARKETING SPECIALISTS  | 2        |
 |            | MARKET RESEACH ANALYSTS AND MARKETING SPECIALISTS  | 1        | 
 
-In the program, the 'input data' method is used in data preprocessing. The 'website file' method is use to check the performance.
+In the program, the 'input data' method is used in data preprocessing. The ['website file' method](https://github.com/amcw7777/h1b-counter/blob/master/src/occupation_checker.py) is use to check the performance.
 
 ## Data analysis
 The preprocessor reads raw data and writes two output files: `processed_xxx.csv` and `soc_map_xxx.csv`. The processed data is skimmed from raw data with fields as 'state', 'soc_code' and 'soc_name'. Only certified records are written into processed data. 
@@ -126,7 +128,7 @@ The input file is read and processed line-by-line. So the largest memory consumi
 
 ### Time complexity
 In preprocessor, the most time consuming part is to split a line with semicolon. So the total time is O(n), n denotes the number of letters in the input file. To find a state based on Zip code needs loop Zip code ranges for states. But the records with incorrect state is rare. Other operations are based on hash table with O(1) time. 
-In analysis code, the time to loop all events is O(m), here m denotes the number of lines. So it is much faster. And sorting cost O(klogk), k is the number of states/occupation. The sorting time is neglectable.
+In analysis code, the time to loop all events is O(m), here m denotes the number of lines. So it is much faster. And sorting cost O(klogk), k is the number of states/occupation. The sorting time is ignorable.
 
 # Run instructions
 Make sure there are 1)`./output` directory and `./input/h1b_input.csv` in current directory. 
