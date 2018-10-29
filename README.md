@@ -2,6 +2,18 @@
 
 A program to analyze H1B row data from past years, specifically calculate two metrics: Top 10 Occupations and Top 10 States for certified visa applications.
 
+# Table of Contents
+1. [Problem](README.md#problem)
+  1. [Input][README.md#input]
+  2. [Output][README.md#output]
+  3. [Challenge][README.md#challenge]
+2. [Approach][README.md#approach]
+  1. [Data information][README.md#data information]
+  2. [Data prerpocessing][README.md#data-preprocessing]
+  3. [Data analysis][README.md#data-analysis]
+  4. [Complexity and trade-offs][README.md#complexity-and-trade-offs]
+3. [Run instructions][README.md#run-instruction]
+
 
 # Problem
 Design a program to analyze [raw immigration data](https://drive.google.com/drive/folders/1Nti6ClUfibsXSQw5PUIWfVGSIrpuwyxf) to calculate two metrics: Top 10 Occupations and Top 10 States for certified visa applications. 
@@ -58,7 +70,7 @@ Valid values include “Certified”, “Certified-Withdrawn”, “Denied”, a
 ### STATE
 Two letters short for one of the states. In some cases, the name of the states are incorrect and the name cannot be found in a state dictionary. For these cases, I am using Zip code to correct the states. And check all the special cases manually. ** If the state name is accidentally input as another state, my program does not work. **
 
-### Inferring occupation 
+### Inferring OCCUPATION
 The occupation name in raw data is not very clean. 
 1. Missing occupation name;
 2. Different format: the occupation name ending with '*' (means modified in SOC2000) or '"'. Or 'R&D' and 'R & D' and 'R and D' which present same name;
