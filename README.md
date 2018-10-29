@@ -36,11 +36,13 @@ Requirements:
 
 ## Data information
 I summarized the field names which are need for this problem for different years.
+
 | Year | Status      | State                   | Zip code             | Occupation name   | SOC code          |
 |:----:|-------------|-------------------------|----------------------|-------------------|-------------------|
 | 2014 | STATUS      | LCA_CASE_WORKLOC1_STATE | PW_1                 | LCA_CASE_SOC_NAME | LCA_CASE_SOC_CODE |
 | 2015 | CASE_STATUS | WORKSITE_STATE          | WORKSITE_POSTAL_CODE | SOC_NAME          | SOC_CODE          |
 | 2016 | CASE_STATUS | WORKSITE_STATE          | WORKSITE_POSTAL_CODE | SOC_NAME          | SOC_CODE          |
+
 So I am using following criteria to select the correct fields
 ```
 Status: 'STATUS' in name
@@ -64,12 +66,36 @@ The occupation name in raw data is not very clean.
 2. Different format: the occupation name ending with '*' (means modified in SOC2000) or '"'. Or 'R&D' and 'R & D' and 'R and D' which present same name;
 3. Typos: like 'ANALYST' -> 'ANALYSTS'; 'COMPUTER' -> 'COMPTUER';
 4. Missing part of information: like 'COMPUTER OCCUPATIONS, ALL' -> 'COMPUTER OCCUPATIONS, ALL OTHER'
+
 We can use SOC code to help correct occupation name, but SOC code also have problem:
 1. Missing SOC code;
 2. Different format: xx/xxxx.xx or xx-xxxx-xx or xxxxxxxx;
 3. Typos: missing number of incorrect SOC code;
 4. Same SOC code but different occupation name.
-To solve format problem, I used two function `clean_soc_code` and `clean_soc_name`. And for the 
-## Data analysis
+
+To solve format problem, I used two function `clean_soc_code` to transfer all SOC code as format 'XX-XXXX.XX'. If the SOC code is 6 digit or ends with '.99', the function replace the end with '.00'. The `clean_soc_name` function fix the occupation as all capital letter and remove extra space and quotas. For the typos, I need two dictionaries:
+```
+occupation_dict: a dictionary stores **valid** occupation name
+soc_code_map: a hashmap, key is the correct SOC code with format XX-XXXX.XX and value is the correct occupation name
+```
+With the help of these two dictionaries, the occupation name can be found with following steps:
+1. If occupation_name in `occupation_dict`, means it is a valid name;
+2. Else, means it is a new name or wrong name. If the SOC code in `soc_code_map`, use the value in the hash map;
+3. Else, means it might be a new name with new SOC code. Or both the name and SOC code are wrong. In this case, just return the name. 
+
+To get these two dictionaries, there are two methods in my program:
+1. Using file from [website](https://www.onetcenter.org/taxonomy/2010/list.html)
+  * Pro: The SOC code and occupation name can be always valid. 
+  * Con: Need to update the file for different year.
+2. Using the input data, for each SOC code, choose the occupation name with most counting as the value. For example, in the table below, the correct name corresponding to '13-1161.00' should be 'MARKET RESEARCH ANALYSTS AND MARKETING SPECIALISTS'. Others are missing information or typos.
+  * Pro: No need extra input; the dictionaries can be self updated;
+  * Con: Not accurate with low input statistic 
+
+| SOC code   |  Occupation name                                   | Counting |
+|------------|----------------------------------------------------|----------|
+| 13-1161.00 | MARKET RESEARCH ANALYSTS AND MARKETING SPECIALISTS | 6978     |
+|            | MARKET RESEARCH ANALYSTS AND MARKETING             | 167      |
+|            | MARKET RESEARCH ANALYST AND MARKETING SPECIALISTS  | 2        |
+|            | MARKET RESEACH ANALYSTS AND MARKETING SPECIALISTS  | 1        | ## Data analysis
 
 ## Trade-offs
