@@ -4,15 +4,15 @@ A program to analyze H1B row data from past years, specifically calculate two me
 
 # Table of Contents
 1. [Problem](README.md#problem)
-  1. [Input][README.md#input]
-  2. [Output][README.md#output]
-  3. [Challenge][README.md#challenge]
-2. [Approach][README.md#approach]
-  1. [Data information][README.md#data information]
-  2. [Data prerpocessing][README.md#data-preprocessing]
-  3. [Data analysis][README.md#data-analysis]
-  4. [Complexity and trade-offs][README.md#complexity-and-trade-offs]
-3. [Run instructions][README.md#run-instruction]
+  1. [Input]( README.md#input )
+  2. [Output]( README.md#output )
+  3. [Challenge]( README.md#challenge )
+2. [Approach]( README.md#approach )
+  1. [Data information]( README.md#data information )
+  2. [Data prerpocessing]( README.md#data-preprocessing )
+  3. [Data analysis]( README.md#data-analysis )
+  4. [Complexity and trade-offs]( README.md#complexity-and-trade-offs )
+3. [Run instructions]( README.md#run-instruction )
 
 
 # Problem
