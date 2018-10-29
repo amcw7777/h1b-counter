@@ -2,9 +2,6 @@
 
 A program to analyze H1B row data from past years, specifically calculate two metrics: Top 10 Occupations and Top 10 States for certified visa applications.
 
-# Run instructions
-Make sure there are 1)`./output` directory and `./input/h1b_input.csv` in current directory. 
-`sh run.sh`
 
 # Problem
 Design a program to analyze [raw immigration data](https://drive.google.com/drive/folders/1Nti6ClUfibsXSQw5PUIWfVGSIrpuwyxf) to calculate two metrics: Top 10 Occupations and Top 10 States for certified visa applications. 
@@ -52,8 +49,9 @@ Occupation name: 'SOC' in name and 'NAME' in name
 SOC code: 'SOC' in name and 'CODE' in name
 ```
 Since in 2014 data, there is another field name `LCA_CASE_WORKLOC2_STATE`, I only take the first time. 
+The semicolon delimiter challenge can be solve using a function. Or using regular expression.
 
-## Data clean
+## Data preprocessing 
 ### STATUS
 Valid values include “Certified”, “Certified-Withdrawn”, “Denied”, and “Withdrawn". In the given data, most information are valid. In the 2014 data, one case with status as 'REJECTED' and another one as 'INVALIDATED'. These are the only two special cases for the three years data. In this problem, only cases with "Certified" status are counted. So the special cases will not affect the result.
 
@@ -96,6 +94,28 @@ To get these two dictionaries, there are two methods in my program:
 | 13-1161.00 | MARKET RESEARCH ANALYSTS AND MARKETING SPECIALISTS | 6978     |
 |            | MARKET RESEARCH ANALYSTS AND MARKETING             | 167      |
 |            | MARKET RESEARCH ANALYST AND MARKETING SPECIALISTS  | 2        |
-|            | MARKET RESEACH ANALYSTS AND MARKETING SPECIALISTS  | 1        | ## Data analysis
+|            | MARKET RESEACH ANALYSTS AND MARKETING SPECIALISTS  | 1        | 
 
-## Trade-offs
+In the program, the 'input data' method is used in data preprocessing. The 'website file' method is use to check the performance.
+
+## Data analysis
+The preprocessor reads raw data and writes two output files: `processed_xxx.csv` and `soc_map_xxx.csv`. The processed data is skimmed from raw data with fields as 'state', 'soc_code' and 'soc_name'. Only certified records are written into processed data. 
+The analysis code (H1BCounter) reads the processed data and SOC_map. In analysis code, the occupation name is inferred based on 'soc_code', 'soc_name' and the SOC_map. And two hash tables record the counting of each state/occupation. Then sort the two tables with counting decreasing and name alphabet. The first 10 or all (if the number of key is less than 10) records are written into `./output/top_10_occupations.txt` and `./output/top_10_states.txt`
+
+## Complexity and trade-offs
+
+### Disk complexity
+The program preprocesses data and save the processed data to disk. The processed data cost about 1/10 space of the raw data. The soc_map file is much small than the processed data. We can certainly process the data to infer the occupation in preprocessor, and only save the hash table as state-counting and occupation-counting. My opinion is:
+1. Save a processed data helps running analysis faster. Once we have new interested in data or to infer new features. It can be fast tuned;
+2. If the raw data is very large, to process data can help analyzing in distributed system. For example, if the raw data are divided, the SOC_code map will be bias and may make mistake.
+
+### Memory complexity
+The input file is read and processed line-by-line. So the largest memory consuming is the hash tables. There are about ~1k occupations, so the memory cost is fordable. And this memory cost will not increase dramatically with the statistic of input.
+
+### Time complexity
+In preprocessor, the most time consuming part is to split a line with semicolon. So the total time is O(n), n denotes the number of letters in the input file. To find a state based on Zip code needs loop Zip code ranges for states. But the records with incorrect state is rare. Other operations are based on hash table with O(1) time. 
+In analysis code, the time to loop all events is O(m), here m denotes the number of lines. So it is much faster. And sorting cost O(klogk), k is the number of states/occupation. The sorting time is neglectable.
+
+# Run instructions
+Make sure there are 1)`./output` directory and `./input/h1b_input.csv` in current directory. 
+`sh run.sh`
