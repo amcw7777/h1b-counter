@@ -1,6 +1,6 @@
 # H1B statistic analyzer
-
-A program to analyze H1B raw data from past years, specifically calculate two metrics: Top 10 Occupations and Top 10 States for certified visa applications.
+This project is developed with Python.
+The purpose is to analyze H1B raw data from past years, calculate two metrics: Top 10 Occupations and Top 10 States for certified visa applications.
 
 # Table of Contents
 1. [Problem](README.md#problem)
@@ -11,7 +11,7 @@ A program to analyze H1B raw data from past years, specifically calculate two me
     1. [Data information]( README.md#data-information )
     2. [Data prerpocessing]( README.md#data-preprocessing )
     3. [Data analysis]( README.md#data-analysis )
-    4. [Complexity and trade-offs]( README.md#complexity-and-trade-offs )
+    4. [Performance and trade-offs]( README.md#performance-and-trade-offs )
 3. [Run instructions]( README.md#run-instructions)
 
 
@@ -42,6 +42,14 @@ Requirements:
 3. Missing data or typo: it is the hardest part in the problem. The work states information are all good. But there are missing or typos in occupation name and SOC code data.
 
 # Approach
+`preprocess.py`: process raw data, find correct fields, clean data. Write records with `'CERTIFIED'` status into processed data:
+1. `STATE`: 'xx' format. Inferred from zip code if not valid;
+2. `SOC_CODE`: 'xx-xxxx.xx' format.
+3. `SOC_NAME`: clean as a string
+`data_analyze.py`: analyze processed data:
+1. Infer occupation name from `SOC_CODE` and `SOC_NAME`;
+2. Use `state_counter` and `occupation_counter` hash tables to record frequency of states and occupations;
+3. Sort based on counts and print out top 10 states and occupations.
 
 ## Data information
 I summarized the field names which are need for this problem for different years.
@@ -83,23 +91,9 @@ We can use SOC code to help correct occupation name, but SOC code also have prob
 3. Typos: missing number of incorrect SOC code;
 4. Same SOC code but different occupation name.
 
-To solve format problem, I used two function `clean_soc_code` to transfer all SOC code as format 'XX-XXXX.XX'. If the SOC code is 6 digit or ends with '.99', the function replace the end with '.00'. The `clean_soc_name` function fix the occupation as all capital letter and remove extra space and quotas. For the typos, I need two dictionaries:
-```
-occupation_dict: a dictionary stores **valid** occupation name
-soc_code_map: a hashmap, key is the correct SOC code with format XX-XXXX.XX and value is the correct occupation name
-```
-With the help of these two dictionaries, the occupation name can be found with following steps:
-1. If occupation_name in `occupation_dict`, means it is a valid name;
-2. Else, means it is a new name or wrong name. If the SOC code in `soc_code_map`, use the value in the hash map;
-3. Else, means it might be a new name with new SOC code. Or both the name and SOC code are wrong. In this case, just return the name. 
+To solve format problem, I used two function [`clean_soc_code`](https://github.com/amcw7777/h1b-counter/blob/master/src/h1b_tools.py#L18-L39) to transfer all SOC code as format 'XX-XXXX.XX'. If the SOC code is 6 digit or ends with '.99', the function replace the end with '.00'. The [`clean_soc_name`](https://github.com/amcw7777/h1b-counter/blob/master/src/h1b_tools.py#L41-L59) function fix the occupation as all capital letter and remove extra space and quotas. 
 
-To get these two dictionaries, there are two methods in my program:
-1. Using file from [website](https://www.onetcenter.org/taxonomy/2010/list.html).
-  * Pro: The SOC code and occupation name can be always valid. 
-  * Con: Need to update the file for different year.
-2. Using the input data, for each SOC code, choose the occupation name with most counting as the value. For example, in the table below, the correct name corresponding to '13-1161.00' should be 'MARKET RESEARCH ANALYSTS AND MARKETING SPECIALISTS'. Others are missing information or typos.
-  * Pro: No need extra input; the dictionaries can be self updated;
-  * Con: Not accurate with low input statistic 
+Using the input data, for each SOC code, choose the occupation name with most counting as the value. For example, in the table below, the correct name corresponding to '13-1161.00' should be 'MARKET RESEARCH ANALYSTS AND MARKETING SPECIALISTS'. Others are missing information or typos.
 
 | SOC code   |  Occupation name                                   | Counting |
 |------------|----------------------------------------------------|----------|
@@ -108,26 +102,40 @@ To get these two dictionaries, there are two methods in my program:
 |            | MARKET RESEARCH ANALYST AND MARKETING SPECIALISTS  | 2        |
 |            | MARKET RESEACH ANALYSTS AND MARKETING SPECIALISTS  | 1        | 
 
-In the program, the 'input data' method is used in data preprocessing. The ['website file' method](https://github.com/amcw7777/h1b-counter/blob/master/src/occupation_checker.py) is use to check the performance.
+
+```
+occupation_dict: a dictionary stores **valid** occupation name
+soc_code_map: a hash table, key is the correct SOC code with format XX-XXXX.XX and value is the correct occupation name
+```
+Use these two dictionaries, the occupation name can be found with following steps:
+1. If occupation_name in `occupation_dict`, means it is a valid name;
+2. Else, means it is a new name or wrong name. If the SOC code in `soc_code_map`, use the value in the hash map;
+3. Else, means it might be a new name with new SOC code. Or both the name and SOC code are wrong. In this case, just return the name. 
 
 ## Data analysis
 The preprocessor reads raw data and writes two output files: `processed_xxx.csv` and `soc_map_xxx.csv`. The processed data is skimmed from raw data with fields as 'state', 'soc_code' and 'soc_name'. Only certified records are written into processed data. 
 The analysis code (H1BCounter) reads the processed data and SOC_map. In analysis code, the occupation name is inferred based on 'soc_code', 'soc_name' and the SOC_map. And two hash tables record the counting of each state/occupation. Then sort the two tables with counting decreasing and name alphabet. The first 10 or all (if the number of key is less than 10) records are written into `./output/top_10_occupations.txt` and `./output/top_10_states.txt`
 
-## Complexity and trade-offs
+## Performance and trade-offs
 
 ### Disk complexity
-The program preprocesses data and save the processed data to disk. The processed data cost about 1/10 space of the raw data. The soc_map file is much small than the processed data. We can certainly process the data to infer the occupation in preprocessor, and only save the hash table as state-counting and occupation-counting. My opinion is:
-1. Save a processed data helps running analysis faster. Once we have new interested in data or to infer new features. It can be fast tuned;
-2. If the raw data is very large, to process data can help analyzing in distributed system. For example, if the raw data are divided, the SOC_code map will be bias and may make mistake.
+The program pre-processes data and save the processed data to disk. The processed data cost about 1/10 space of the raw data. The soc_map file is much small than the processed data. 
+The advantages are:
+1. Save time and memory: to infer the occupation name, using the processed data can help speed up x10. 
+2. For further distributed analysis: both the soc_code_map and preprocessed data can be extended in distributed system safely.
 
 ### Memory complexity
-The input file is read and processed line-by-line. So the largest memory consuming is the hash tables. There are about ~1k occupations, so the memory cost is fordable. And this memory cost will not increase dramatically with the statistic of input.
+The input file is read and processed line-by-line. So the largest memory consuming is the hash tables. There are about ~1k occupations, the memory cost is ~100k. And this memory cost will not increase dramatically with the statistic of input.
 
 ### Time complexity
-In preprocessor, the most time consuming part is to split a line with semicolon. So the total time is O(n), n denotes the number of letters in the input file. To find a state based on Zip code needs loop Zip code ranges for states. But the records with incorrect state is rare. Other operations are based on hash table with O(1) time. 
-In analysis code, the time to loop all events is O(m), here m denotes the number of lines. So it is much faster. And sorting cost O(klogk), k is the number of states/occupation. The sorting time is ignorable.
+In preprocessor, the most time consuming part is to split a line with semicolon. So the total time is O(n), n denotes the number of letters in the input file. Other operations are based on hash table with O(1) time. 
+In analysis code, the time to loop all events is O(m), here m denotes the number of letters, which is about 1/10 of n. 
+And sorting time is O(klogk), k is the number of states/occupation. Since k ~ 1000, no need to use heap sort.
 
 # Run instructions
 Make sure there are 1)`./output` directory and `./input/h1b_input.csv` in current directory. 
+
 `sh run.sh`
+
+# Acknowledgement
+Thanks to the Insight fellowship team, this small project gave me a meaningful and happy weekend.
