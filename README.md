@@ -46,6 +46,7 @@ Requirements:
 1. `STATE`: 'xx' format. Inferred from zip code if not valid;
 2. `SOC_CODE`: 'xx-xxxx.xx' format.
 3. `SOC_NAME`: clean as a string
+
 `data_analyze.py`: analyze processed data:
 1. Infer occupation name from `SOC_CODE` and `SOC_NAME`;
 2. Use `state_counter` and `occupation_counter` hash tables to record frequency of states and occupations;
@@ -54,17 +55,16 @@ Requirements:
 ## Data information
 I summarized the field names which are need for this problem for different years.
 
-| Year | Status      | State                   | Zip code             | Occupation name   | SOC code          |
-|:----:|-------------|-------------------------|----------------------|-------------------|-------------------|
-| 2014 | STATUS      | LCA_CASE_WORKLOC1_STATE | PW_1                 | LCA_CASE_SOC_NAME | LCA_CASE_SOC_CODE |
-| 2015 | CASE_STATUS | WORKSITE_STATE          | WORKSITE_POSTAL_CODE | SOC_NAME          | SOC_CODE          |
-| 2016 | CASE_STATUS | WORKSITE_STATE          | WORKSITE_POSTAL_CODE | SOC_NAME          | SOC_CODE          |
+| Year | Status      | State                   | Occupation name   | SOC code          |
+|:----:|-------------|-------------------------|-------------------|-------------------|
+| 2014 | STATUS      | LCA_CASE_WORKLOC1_STATE | LCA_CASE_SOC_NAME | LCA_CASE_SOC_CODE |
+| 2015 | CASE_STATUS | WORKSITE_STATE          | SOC_NAME          | SOC_CODE          |
+| 2016 | CASE_STATUS | WORKSITE_STATE          | SOC_NAME          | SOC_CODE          |
 
 So I am using following criteria to select the correct fields
 ```
 Status: 'STATUS' in name
 State: 'WORK' in name and 'STATE' in name
-Zip code: the next element of State
 Occupation name: 'SOC' in name and 'NAME' in name
 SOC code: 'SOC' in name and 'CODE' in name
 ```
@@ -78,7 +78,7 @@ Valid values include “Certified”, “Certified-Withdrawn”, “Denied”, a
 ### STATE
 Two letters short for one of the states. In some cases, the name of the states are incorrect and the name cannot be found in a state dictionary. For these cases, [a function](https://github.com/amcw7777/h1b-counter/blob/master/src/preprocess.py#L112-L127) uses Zip code to correct the states. And check all the special cases manually. ** If the state name is accidentally input as another state, my program does not work. **
 
-### Inferring OCCUPATION
+### 'VOTING' to correct OCCUPATION
 The occupation name in raw data is not very clean. 
 1. Missing occupation name;
 2. Different format: the occupation name ending with '*' (means modified in SOC2000) or '"'. Or 'R&D' and 'R & D' and 'R and D' which present same name;
@@ -91,9 +91,12 @@ We can use SOC code to help correct occupation name, but SOC code also have prob
 3. Typos: missing number of incorrect SOC code;
 4. Same SOC code but different occupation name.
 
-To solve format problem, I used two function [`clean_soc_code`](https://github.com/amcw7777/h1b-counter/blob/master/src/h1b_tools.py#L18-L39) to transfer all SOC code as format 'XX-XXXX.XX'. If the SOC code is 6 digit or ends with '.99', the function replace the end with '.00'. The [`clean_soc_name`](https://github.com/amcw7777/h1b-counter/blob/master/src/h1b_tools.py#L41-L59) function fix the occupation as all capital letter and remove extra space and quotas. 
+To solve format problem, I used two function [`clean_soc_code`](https://github.com/amcw7777/h1b-counter/blob/master/src/h1b_tools.py#L18-L39) to transfer all SOC code as format 'XX-XXXX.XX'. If the SOC code is 6 digit or ends with '.99', the function replace the end with '.00'. 
 
-Using the input data, for each SOC code, choose the occupation name with most counting as the value. For example, in the table below, the correct name corresponding to '13-1161.00' should be 'MARKET RESEARCH ANALYSTS AND MARKETING SPECIALISTS'. Others are missing information or typos.
+The [`clean_soc_name`](https://github.com/amcw7777/h1b-counter/blob/master/src/h1b_tools.py#L41-L59) function fix the occupation as all capital letter and remove extra space and quotas. 
+
+The correct occupation name is the soc_name with **highest frequency** of one soc_code.
+For example, in the table below, the correct name corresponding to '13-1161.00' should be 'MARKET RESEARCH ANALYSTS AND MARKETING SPECIALISTS'. Others are missing information or typos.
 
 | SOC code   |  Occupation name                                   | Counting |
 |------------|----------------------------------------------------|----------|
@@ -103,17 +106,9 @@ Using the input data, for each SOC code, choose the occupation name with most co
 |            | MARKET RESEACH ANALYSTS AND MARKETING SPECIALISTS  | 1        | 
 
 
-```
-occupation_dict: a dictionary stores **valid** occupation name
-soc_code_map: a hash table, key is the correct SOC code with format XX-XXXX.XX and value is the correct occupation name
-```
-Use these two dictionaries, the occupation name can be found with following steps:
-1. If occupation_name in `occupation_dict`, means it is a valid name;
-2. Else, means it is a new name or wrong name. If the SOC code in `soc_code_map`, use the value in the hash map;
-3. Else, means it might be a new name with new SOC code. Or both the name and SOC code are wrong. In this case, just return the name. 
-
 ## Data analysis
 The preprocessor reads raw data and writes two output files: `processed_xxx.csv` and `soc_map_xxx.csv`. The processed data is skimmed from raw data with fields as 'state', 'soc_code' and 'soc_name'. Only certified records are written into processed data. 
+
 The analysis code (H1BCounter) reads the processed data and SOC_map. In analysis code, the occupation name is inferred based on 'soc_code', 'soc_name' and the SOC_map. And two hash tables record the counting of each state/occupation. Then sort the two tables with counting decreasing and name alphabet. The first 10 or all (if the number of key is less than 10) records are written into `./output/top_10_occupations.txt` and `./output/top_10_states.txt`
 
 ## Performance and trade-offs
@@ -129,8 +124,10 @@ The input file is read and processed line-by-line. So the largest memory consumi
 
 ### Time complexity
 In preprocessor, the most time consuming part is to split a line with semicolon. So the total time is O(n), n denotes the number of letters in the input file. Other operations are based on hash table with O(1) time. 
+
 In analysis code, the time to loop all events is O(m), here m denotes the number of letters, which is about 1/10 of n. 
-And sorting time is O(klogk), k is the number of states/occupation. Since k ~ 1000, no need to use heap sort.
+
+And sorting time is O(klogk), k is the number of states/occupation. Since k ~ 1000, no need to use heap (with O(klog10) time complexity).
 
 # Run instructions
 Make sure there are 1)`./output` directory and `./input/h1b_input.csv` in current directory. 
