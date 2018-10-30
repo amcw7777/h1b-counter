@@ -1,6 +1,6 @@
 # H1B statistic analyzer
 
-A program to analyze H1B row data from past years, specifically calculate two metrics: Top 10 Occupations and Top 10 States for certified visa applications.
+A program to analyze H1B raw data from past years, specifically calculate two metrics: Top 10 Occupations and Top 10 States for certified visa applications.
 
 # Table of Contents
 1. [Problem](README.md#problem)

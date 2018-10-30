@@ -1,6 +1,5 @@
 import sys
 import re
-from occupation_checker import OccupationChecker
 import h1b_tools as tools
 
 class H1BCounter(object):
@@ -39,22 +38,27 @@ class H1BCounter(object):
         '''
         self.load_soc_map()
         processed_file = './src/processed_'+self.input_file_name
-        checklist = {}
         with open(processed_file) as file:
             next(file)
             for line in file:
                 cols = re.split(r';(?=([^\"]*\"[^\"]*\")*[^\"]*$)', line)
                 '''
-                the regular expression is for case "xxx;xxxx"
+                the regular expression is for case xx;"xxx;xxxx" -> [xx,xxx;xxxx]
                 '''
                 state = cols[0].strip('"')
                 code = cols[2].strip('"')
                 name = cols[4].strip('"\n')
 
+                '''
+                add state into state hash table
+                '''
                 if state not in self.state_counter:
                     self.state_counter[state] = 0
                 self.state_counter[state] += 1
 
+                '''
+                correct occupation associated with SOC code
+                '''
                 occupation = self.get_occupation(code, name)
 
                 if occupation not in self.occupation_counter:
@@ -80,8 +84,12 @@ class H1BCounter(object):
 
     def vote_code_map(self, counter):
         '''
+        build hash table: key:soc_code, value:soc_name with most counting
         choose the soc_name with most counting corresponding the soc_code
         save the valid soc_name into occupation_dict
+
+        @type counter: dictionary counter[soc_code][soc_name] = counting
+        @rtype: nothing
         '''
         for code in counter:
             temp_list = []
@@ -97,6 +105,10 @@ class H1BCounter(object):
         '''
         if name in occupation dict, return the name
         else find the name based on soc_code
+
+        @type code: string
+        @type name: string
+        @rtype: string
         '''
         if name in self.occupation_dict:
             return name
@@ -111,6 +123,7 @@ class H1BCounter(object):
             '''
             sort by decreasing counting
             in case of a tie, sort alphabetically
+            @type item: tuple (name, counting)
             '''
             if item1[1] != item2[1]:
                 return item2[1] - item1[1]
@@ -127,6 +140,9 @@ class H1BCounter(object):
         output_state = open(self.output_state_name, 'w')
         output_state.write('TOP_STATES;NUMBER_CERTIFIED_APPLICATIONS;PERCENTAGE\n')
         for i in range(min(10, len(state_list))):
+            '''
+            Percentages also should be rounded off to 1 decimal place
+            '''
             percentage = str(round(1.0*state_list[i][1]*100/self.total_counter, 1)) + '%'
             output_state.write(state_list[i][0]+';'+\
                                     str(state_list[i][1])+\

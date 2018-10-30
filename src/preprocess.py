@@ -2,7 +2,6 @@ import sys
 import re
 import h1b_tools as tools
 from states import state_map
-from states import zip_list 
 
 class Preprocessor(object):
     '''
@@ -63,18 +62,30 @@ class Preprocessor(object):
                             soc_code_idx = i
                     self._total_counter += 1
                 else:
+                    '''
+                    status should be 'CERTIFIED', ignore very rare special cases
+                    '''
                     status = cols[status_idx].strip().upper()
                     if cols[status_idx] != 'CERTIFIED':
                         continue
-                    soc_code = tools.clean_soc_code(cols[soc_code_idx])
-                    soc_name = tools.clean_soc_name(cols[soc_name_idx])
+                    '''
+                    state is read with 2 captial letters
+                    if not correct, find it using zip code
+                    '''
                     state = (cols[state_idx]).strip('"')
                     if state not in state_map or not state:
                         zip_code = (cols[state_idx+2]).strip('"')
-                        state = self.get_state_from_zip(int(zip_code))
-                    self.output_file.write('"'+state+'";"'+soc_code+'";"'+soc_name+'"\n')
+                        state = tools.get_state_from_zip(int(zip_code))
+                    '''
+                    save soc_code and soc_name in preprocessed data
+                    build soc_code[soc_map] counting hash table
+                    '''
+                    soc_code = tools.clean_soc_code(cols[soc_code_idx])
+                    soc_name = tools.clean_soc_name(cols[soc_name_idx])
                     self.build_dict(soc_name, soc_code) # count soc_name, soc_code
                     self._total_counter += 1
+                    self.output_file.write('"'+state+'";"'+soc_code+'";"'+soc_name+'"\n')
+
                 if self._total_counter % 100000 == 0:
                     print self._total_counter, 'cases processed...'
         print self._total_counter, 'certified cases processed'
@@ -108,20 +119,3 @@ class Preprocessor(object):
                 counting = str(self.soc_code_map_counter[code][name])
                 output_map.write(code+';"'+name+'";'+counting+'\n')
         output_map.close()
-
-    def get_state_from_zip(self, zip_code):
-        '''
-        get state from zip code
-        @type zip_code: integer
-        @rtype: string
-        '''
-        for zip_map in zip_list:
-            for zip_range in zip_map[1:]:
-                if ',' not in zip_range:
-                    if zip_code == int(zip_range):
-                        return zip_map[0]
-                else:
-                    zip_low, zip_high = zip_range.split(',')
-                    if int(zip_low) <= zip_code <= int(zip_high):
-                        return zip_map[0]
-        return '?'

@@ -24,8 +24,20 @@ def data_analyze():
     analyzer.analyze()
 
 if __name__ == "__main__":
+    '''
+    @argv[1]: input file name
+    @argv[2]: top_10_occupations output
+    @argv[3]: top_10_states output
+    '''
+    if len(sys.argv) < 4:
+        print "Usage: python ./src/h1b_counting.py \
+                ./input/h1b_input.csv \
+                ./output/top_10_occupations.txt \
+                ./output/top_10_states.txt"
     input_file_name = sys.argv[1]
     output_occupation_name = sys.argv[2]
     output_state_name = sys.argv[3]
     preprocess()
     data_analyze()
+
+

@@ -1,3 +1,4 @@
+from states import zip_list
 '''
 Implementation of useful function in H1B data analysis.
 
@@ -57,7 +58,7 @@ def clean_soc_name(name):
         name = name.strip('*')
     return name
 
-def split(s, sep):
+def split(line, sep):
     '''
     split a string with separater
     consider the case with quota 'xx;"xxx;xx";x' -> ['xx', '"xxx;xx"', 'x']
@@ -65,19 +66,34 @@ def split(s, sep):
     @tpye sep: char (',', ';', etc...)
     @rtype: list of string
     '''
-    n = len(s)
+    size = len(line)
     i = 0
     res = []
-    while i < n:
+    while i < size:
         temp = ''
         quota = False
-        while i < n and (s[i] != sep or quota):
-            temp += s[i]
-            if s[i] == '"':
+        while i < size and (line[i] != sep or quota):
+            temp += line[i]
+            if line[i] == '"':
                 quota = not quota
             i += 1
         res.append(temp)
         i += 1
     return res
 
-
+def get_state_from_zip(zip_code):
+    '''
+    get state from zip code
+    @type zip_code: integer
+    @rtype: string
+    '''
+    for zip_map in zip_list:
+        for zip_range in zip_map[1:]:
+            if ',' not in zip_range:
+                if zip_code == int(zip_range):
+                    return zip_map[0]
+            else:
+                zip_low, zip_high = zip_range.split(',')
+                if int(zip_low) <= zip_code <= int(zip_high):
+                    return zip_map[0]
+    return None
